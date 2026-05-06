@@ -1,35 +1,23 @@
 import json
-import os
 
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from pydobot import Dobot
+
+from src import Robot
 
 app = FastAPI()
-dobot = Dobot(port=os.environ.get("DobotPort", "/dev/ttyUSB0"), verbose=True)
-x, y, z, r, j1, j2, j3, j4 = dobot.pose()
+robot = Robot()
 
-@app.websocket("/ws")
+
+@app.websocket("/socket")
 async def websocket_endpoint(websocket: WebSocket):
-    global x, y, z, r
     await websocket.accept()
     print(f"WebSocket Pi 4 connected from: {websocket.client.host}")
     try:
         while True:
-            action = json.loads(await websocket.receive_text())
-            print(f"Joystick Data: {action}")
-
-            direction = action.get('direction')
-            if direction == "Forward":
-                dobot.move_to(x + 5, y, z, r, wait=False)
-            elif direction == "Backward":
-                dobot.move_to(x - 5, y, z, r, wait=False)
-            elif direction == "Left":
-                dobot.move_to(x, y - 5, z, r, wait=False)
-            elif direction == "Right":
-                dobot.move_to(x, y + 5, z, r, wait=False)
-
-            x, y, z, r, j1, j2, j3, j4 = dobot.pose()
+            action = await websocket.receive_json()
+            await websocket.send_text(f"Moving robot {action.get('action')}")
+            robot.move(action.get("action"), 10)
 
     except WebSocketDisconnect:
         print("Pi 4 Disconnected")
