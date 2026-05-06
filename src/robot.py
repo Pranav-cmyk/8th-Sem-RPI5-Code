@@ -1,8 +1,13 @@
+import os
+
+from dotenv import load_dotenv
 from pydobot import Dobot
+
+load_dotenv()
 
 
 class Robot:
-    def __init__(self, port="/dev/ttyUSB0"):
+    def __init__(self, port=os.getenv("port")):
         self.dobot = Dobot(port=port, verbose=True)
 
     def move(self, action: str, increment: int = 5):
